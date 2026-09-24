@@ -1,243 +1,156 @@
 <!DOCTYPE html>
 <html lang="ku" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AMEN iT</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMEN iT - IQ Challenge</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<header class="topbar">
-  <div class="brand">AMEN <span>iT</span></div>
-
-  <div class="top-actions">
-    <div class="coins">🪙 <span id="coins">100</span></div>
-    <button id="settingsButton">⚙️</button>
-  </div>
-</header>
-
+<div class="background">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="stars"></div>
+</div>
 
 <!-- LOGIN -->
-<section id="loginScreen" class="screen active">
+<div id="loginScreen" class="screen">
+    <div class="login-box">
+        <div class="mini-logo">AMEN iT</div>
 
-  <div class="login-card">
+        <h1>🧠 IQ CHALLENGE</h1>
+        <p>خۆت تاقی بکەرەوە و تا مەرحەلەی 1000 بڕۆ!</p>
 
-    <div class="amen-logo">A</div>
+        <input
+            id="emailInput"
+            type="email"
+            placeholder="ئیمەیڵەکەت بنووسە"
+        >
 
-    <div class="logo-name">AMEN <span>iT</span></div>
-
-    <div class="game-title">یاریی زیرەکی</div>
-
-    <p>
-      بە Email ـەکەت بچۆ ژوورەوە<br>
-      و توانای زیرەکیت تاقی بکەرەوە
-    </p>
-
-    <input
-      id="email"
-      type="email"
-      placeholder="✉️ Email ـەکەت بنووسە"
-      autocomplete="email"
-    >
-
-    <button id="loginButton" class="main-button">
-      🚀 چوونەژوورەوە
-    </button>
-
-    <div id="loginError"></div>
-
-  </div>
-
-</section>
-
-
-<!-- HOME -->
-<section id="homeScreen" class="screen">
-
-  <main class="home">
-
-    <div class="welcome-card">
-      <div class="mini-logo">A</div>
-
-      <div>
-        <h1 id="welcomeText">بەخێربێیت 👋</h1>
-        <p>ئامادەیت بۆ تاقیکردنەوەی زیرەکیت؟</p>
-      </div>
+        <button onclick="login()" class="main-btn">
+            دەستپێکردن 🚀
+        </button>
     </div>
-
-    <div class="stats">
-
-      <div class="stat">
-        <span>🪙</span>
-        <strong id="homeCoins">100</strong>
-        <small>پارە</small>
-      </div>
-
-      <div class="stat">
-        <span>🏆</span>
-        <strong id="completedLevels">0</strong>
-        <small>مەرحەلە تەواوکراوەکان</small>
-      </div>
-
-      <div class="stat">
-        <span>🎯</span>
-        <strong id="currentLevel">1</strong>
-        <small>مەرحەلەی ئێستا</small>
-      </div>
-
-    </div>
-
-    <button id="playButton" class="big-button">
-      ▶️ دەستپێکردنی یاری
-    </button>
-
-    <button id="levelsButton" class="secondary-button">
-      🏆 هەموو مەرحەلەکان
-    </button>
-
-  </main>
-
-</section>
-
-
-<!-- LEVELS -->
-<section id="levelsScreen" class="screen">
-
-  <main class="page">
-
-    <div class="page-title">
-      <h1>🏆 مەرحەلەکان</h1>
-      <p>هەموو مەرحەلەکان بە پێی پێشکەوتنت دەکرێنەوە</p>
-    </div>
-
-    <div id="levelsGrid" class="levels-grid"></div>
-
-    <button id="levelsBackButton" class="secondary-button">
-      ↩️ گەڕانەوە
-    </button>
-
-  </main>
-
-</section>
-
+</div>
 
 <!-- GAME -->
-<section id="gameScreen" class="screen">
+<div id="gameScreen" class="hidden">
 
-  <main class="game">
+    <header>
+        <div class="brand">AMEN iT</div>
 
-    <div class="game-header">
+        <div class="top-info">
+            <span>🪙 <b id="coins">0</b></span>
+            <button onclick="openSettings()">⚙️</button>
+        </div>
+    </header>
 
-      <button id="backButton">↩️</button>
+    <main>
 
-      <div>
-        <strong id="gameLevel">مەرحەلە 1</strong>
-        <small id="questionNumber">پرسیاری 1 / 10</small>
-      </div>
+        <section id="levelsSection">
 
-      <div class="game-coins">
-        🪙 <span id="gameCoins">100</span>
-      </div>
+            <div class="profile">
+                <div>
+                    <small id="playerEmail"></small>
+                    <h2>ئاستەکان</h2>
+                </div>
 
-    </div>
+                <div class="progress-box">
+                    <span id="progressText">0 / 1000</span>
+                    <div class="progress">
+                        <div id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
 
-    <div class="progress">
-      <div id="progressBar"></div>
-    </div>
+            <div id="levels" class="levels"></div>
 
-    <div class="question-card">
-
-      <div class="question-icon">?</div>
-
-      <h2 id="questionText">
-        پرسیار
-      </h2>
-
-      <div id="answers" class="answers"></div>
-
-      <button id="unlockBtn" class="lifeline">
-        🪙 50 — لابردنی هەڵبژاردەیەکی هەڵە
-      </button>
-
-    </div>
-
-  </main>
-
-</section>
+        </section>
 
 
-<!-- SETTINGS -->
-<section id="settingsScreen" class="screen">
+        <section id="quizSection" class="hidden">
 
-  <main class="settings">
+            <div class="quiz-top">
+                <button onclick="backToLevels()">←</button>
 
-    <div class="page-title">
-      <h1>⚙️ ڕێکخستنەکان</h1>
-    </div>
+                <span>
+                    مەرحەلە <b id="currentLevel">1</b>
+                </span>
 
-    <div class="setting-row">
-      <div>
-        <strong>🔊 دەنگی یاری</strong>
-        <small>دەنگی وەڵامی ڕاست و هەڵە</small>
-      </div>
+                <span>
+                    🪙 <b id="quizCoins">0</b>
+                </span>
+            </div>
 
-      <button id="soundToggle" class="toggle active">ON</button>
-    </div>
+            <div class="question-card">
 
-    <div class="setting-row">
-      <div>
-        <strong>🎵 دەنگی پشتەوە</strong>
-        <small>Background Music</small>
-      </div>
+                <div class="question-number">
+                    پرسیاری <span id="questionNumber">1</span> / 10
+                </div>
 
-      <button id="musicToggle" class="toggle active">ON</button>
-    </div>
+                <h2 id="question"></h2>
 
-    <div class="volume-box">
-      <strong>🔉 بڕی دەنگ</strong>
-      <input id="volume" type="range" min="0" max="1" step="0.05" value="0.7">
-    </div>
+                <div id="answers" class="answers"></div>
 
-    <button id="settingsBackButton" class="secondary-button">
-      ↩️ گەڕانەوە
-    </button>
+                <button
+                    id="helpButton"
+                    onclick="removeAnswers()"
+                    class="help-btn"
+                >
+                    🔓 کردنەوەی هەڵبژاردە
+                    <span>50 🪙</span>
+                </button>
 
-  </main>
+            </div>
 
-</section>
+        </section>
 
-
-<!-- LEVEL COMPLETE -->
-<div id="levelCompletePopup" class="popup">
-
-  <div class="popup-card">
-
-    <div class="complete-icon">🏆</div>
-
-    <h1>مەرحەلە تەواو بوو!</h1>
-
-    <p>زۆر باشە! مەرحەلەکەت بە سەرکەوتوویی تەواو کرد.</p>
-
-    <button id="nextLevelButton" class="big-button">
-      ▶️ مەرحەلەی داهاتوو
-    </button>
-
-    <button id="homeButton" class="secondary-button">
-      🏠 سەرەتا
-    </button>
-
-    <button id="closePopup" class="close-button">
-      ✕
-    </button>
-
-  </div>
-
+    </main>
 </div>
 
 
-<script src="questions.js"></script>
+<!-- SETTINGS -->
+<div id="settings" class="modal hidden">
+
+    <div class="settings-box">
+
+        <button class="close" onclick="closeSettings()">×</button>
+
+        <h2>⚙️ Settings</h2>
+
+        <label>
+            🔊 دەنگ
+            <input
+                id="soundToggle"
+                type="checkbox"
+                checked
+                onchange="changeSound()"
+            >
+        </label>
+
+        <label>
+            🔉 قەبارەی دەنگ
+            <input
+                id="volume"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.5"
+                onchange="changeVolume()"
+            >
+        </label>
+
+        <button onclick="logout()" class="logout">
+            دەرچوون
+        </button>
+
+    </div>
+
+</div>
+
 <script src="script.js"></script>
 
 </body>

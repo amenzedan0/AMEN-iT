@@ -1,844 +1,665 @@
-const SAVE_PREFIX = "AMEN_iT_USER_";
+// ===============================
+// AMEN iT - IQ CHALLENGE
+// ===============================
 
-let userEmail = "";
+let email = localStorage.getItem("amen_email");
+
+let coins = Number(localStorage.getItem("amen_coins")) || 0;
+
+let completedLevel =
+    Number(localStorage.getItem("amen_completed")) || 0;
+
 let currentLevel = 1;
-let coins = 100;
-let completedLevels = [];
-
 let questionIndex = 0;
-let answerLocked = false;
-let eliminated = false;
 
-let soundEnabled = true;
-let musicEnabled = true;
-let volume = 0.7;
+let soundEnabled =
+    localStorage.getItem("amen_sound") !== "false";
 
-const $ = id => document.getElementById(id);
+let volume =
+    Number(localStorage.getItem("amen_volume")) || 0.5;
+
+let removedAnswers = false;
 
 
-/* SCREEN */
+// ===============================
+// QUESTION BANK
+// ===============================
 
-function showScreen(id) {
+const questionBank = [
 
-  document.querySelectorAll(".screen").forEach(screen => {
-    screen.classList.remove("active");
-  });
+    {
+        q: "کام لەمانە گەورەترین ژمارەیە؟",
+        a: ["12", "25", "19", "8"],
+        correct: 1
+    },
 
-  $(id).classList.add("active");
+    {
+        q: "ئەگەر 5 + 7 = ؟",
+        a: ["10", "11", "12", "13"],
+        correct: 2
+    },
+
+    {
+        q: "کام ئاژەڵ زۆرجار بە پاشای ئاژەڵان ناسراوە؟",
+        a: ["پشیلە", "شێر", "ئەسپ", "گەورە"],
+        correct: 1
+    },
+
+    {
+        q: "ژمارەی ڕۆژەکانی هەفتە چەندە؟",
+        a: ["5", "6", "7", "8"],
+        correct: 2
+    },
+
+    {
+        q: "H2O چییە؟",
+        a: ["ئاو", "ئاسن", "ئۆکسجین", "نمک"],
+        correct: 0
+    },
+
+    {
+        q: "ئەگەر 10 × 5 = ؟",
+        a: ["40", "45", "50", "55"],
+        correct: 2
+    },
+
+    {
+        q: "کام لەمانە سیستەمی کارپێکردنی کۆمپیوتەرە؟",
+        a: ["Windows", "Keyboard", "Mouse", "Monitor"],
+        correct: 0
+    },
+
+    {
+        q: "کام ڕەنگ لەگەڵ شین تێکەڵ بکرێت زۆرجار سەوز دروست دەکات؟",
+        a: ["زەرد", "ڕەش", "سپی", "پەمەیی"],
+        correct: 0
+    },
+
+    {
+        q: "ئەگەر 100 - 35 = ؟",
+        a: ["55", "65", "75", "85"],
+        correct: 1
+    },
+
+    {
+        q: "کامەیان سیارەیە؟",
+        a: ["خۆر", "مانگ", "زەوی", "ئەستێرە"],
+        correct: 2
+    }
+
+];
+
+
+// ===============================
+// CREATE 1000 LEVELS
+// ===============================
+
+function getQuestionsForLevel(level) {
+
+    const questions = [];
+
+    for (let i = 0; i < 10; i++) {
+
+        const base =
+            questionBank[
+                (level * 10 + i) %
+                questionBank.length
+            ];
+
+        questions.push({
+            q: base.q,
+            a: [...base.a],
+            correct: base.correct
+        });
+
+    }
+
+    return questions;
 }
 
 
-/* SAVE */
-
-function saveUser() {
-
-  if (!userEmail) return;
-
-  localStorage.setItem(
-    SAVE_PREFIX + userEmail,
-    JSON.stringify({
-      coins,
-      currentLevel,
-      completedLevels,
-      soundEnabled,
-      musicEnabled,
-      volume
-    })
-  );
-}
-
-
-/* LOAD */
-
-function loadUser() {
-
-  const saved =
-    localStorage.getItem(
-      SAVE_PREFIX + userEmail
-    );
-
-  if (!saved) {
-    coins = 100;
-    currentLevel = 1;
-    completedLevels = [];
-    return;
-  }
-
-  try {
-
-    const data = JSON.parse(saved);
-
-    coins = Number.isFinite(data.coins)
-      ? data.coins
-      : 100;
-
-    currentLevel =
-      Number.isFinite(data.currentLevel)
-      ? data.currentLevel
-      : 1;
-
-    completedLevels =
-      Array.isArray(data.completedLevels)
-      ? data.completedLevels
-      : [];
-
-    soundEnabled =
-      data.soundEnabled ?? true;
-
-    musicEnabled =
-      data.musicEnabled ?? true;
-
-    volume =
-      data.volume ?? .7;
-
-  } catch {
-
-    coins = 100;
-    currentLevel = 1;
-    completedLevels = [];
-  }
-}
-
-
-/* COINS */
-
-function updateCoins() {
-
-  $("coins").textContent = coins;
-  $("homeCoins").textContent = coins;
-
-  if ($("gameCoins")) {
-    $("gameCoins").textContent = coins;
-  }
-}
-
-
-/* HOME */
-
-function updateHome() {
-
-  const name =
-    userEmail.split("@")[0];
-
-  $("welcomeText").textContent =
-    `بەخێربێیت ${name} 👋`;
-
-  $("completedLevels").textContent =
-    completedLevels.length;
-
-  $("currentLevel").textContent =
-    currentLevel;
-
-  updateCoins();
-}
-
-
-/* LOGIN */
+// ===============================
+// LOGIN
+// ===============================
 
 function login() {
 
-  const email =
-    $("email").value.trim().toLowerCase();
+    const input =
+        document.getElementById("emailInput");
 
-  const error =
-    $("loginError");
+    const value = input.value.trim();
 
-  error.textContent = "";
+    if (!value || !value.includes("@")) {
 
-  if (
-    !email ||
-    !email.includes("@") ||
-    !email.includes(".")
-  ) {
+        alert("تکایە ئیمەیڵێکی دروست بنووسە");
 
-    error.textContent =
-      "⚠️ تکایە Email ـێکی دروست بنووسە";
+        return;
+    }
 
-    return;
-  }
+    email = value;
 
-  userEmail = email;
+    localStorage.setItem(
+        "amen_email",
+        email
+    );
 
-  loadUser();
-  updateHome();
-  saveUser();
-
-  showScreen("homeScreen");
+    showGame();
 }
 
 
-/* LEVELS */
+// ===============================
+// START
+// ===============================
 
-function totalLevels() {
+function showGame() {
 
-  return Math.floor(
-    QUESTIONS.length / 10
-  );
+    document
+        .getElementById("loginScreen")
+        .classList.add("hidden");
+
+    document
+        .getElementById("gameScreen")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("playerEmail")
+        .textContent = email;
+
+    updateCoins();
+
+    renderLevels();
 }
 
+
+// ===============================
+// LEVELS
+// ===============================
 
 function renderLevels() {
 
-  const grid =
-    $("levelsGrid");
+    const container =
+        document.getElementById("levels");
 
-  grid.innerHTML = "";
+    container.innerHTML = "";
 
-  const total =
-    totalLevels();
+    for (let level = 1; level <= 1000; level++) {
 
-  for (
-    let level = 1;
-    level <= total;
-    level++
-  ) {
+        const button =
+            document.createElement("div");
 
-    const button =
-      document.createElement("button");
+        button.className = "level";
 
-    button.className = "level";
+        if (level <= completedLevel) {
 
-    const unlocked =
-      level === 1 ||
-      completedLevels.includes(level - 1);
+            button.classList.add("completed");
 
-    const completed =
-      completedLevels.includes(level);
+            button.innerHTML = `
+                <div class="level-number">
+                    ${level}
+                </div>
+                <div>✓ تەواو</div>
+            `;
 
-    if (completed) {
+        } else if (level === completedLevel + 1) {
 
-      button.classList.add("completed");
+            button.classList.add("current");
 
-      button.innerHTML =
-        `🏆 ${level}`;
+            button.innerHTML = `
+                <div class="level-number">
+                    ${level}
+                </div>
+                <div>▶ دەستپێبکە</div>
+            `;
 
-    } else if (unlocked) {
+            button.onclick =
+                () => startLevel(level);
 
-      button.classList.add("unlocked");
+        } else {
 
-      button.innerHTML =
-        `🎮 ${level}`;
+            button.classList.add("locked");
 
-    } else {
+            button.innerHTML = `
+                <div class="level-number">
+                    🔒
+                </div>
+                <div>${level}</div>
+            `;
+        }
 
-      button.classList.add("locked");
-
-      button.innerHTML =
-        `🔒 ${level}`;
+        container.appendChild(button);
     }
 
-    if (unlocked) {
-
-      button.addEventListener(
-        "click",
-        () => startLevel(level)
-      );
-    }
-
-    grid.appendChild(button);
-  }
+    updateProgress();
 }
 
 
-/* START */
+// ===============================
+// START LEVEL
+// ===============================
 
 function startLevel(level) {
 
-  const unlocked =
-    level === 1 ||
-    completedLevels.includes(level - 1);
+    if (level > completedLevel + 1) return;
 
-  if (!unlocked) return;
+    currentLevel = level;
+    questionIndex = 0;
+    removedAnswers = false;
 
-  currentLevel = level;
-  questionIndex = 0;
-  answerLocked = false;
-  eliminated = false;
+    document
+        .getElementById("levelsSection")
+        .classList.add("hidden");
 
-  showScreen("gameScreen");
+    document
+        .getElementById("quizSection")
+        .classList.remove("hidden");
 
-  renderQuestion();
+    showQuestion();
 }
 
 
-/* CURRENT QUESTION */
+// ===============================
+// QUESTION
+// ===============================
 
-function getCurrentQuestion() {
+function showQuestion() {
 
-  const index =
-    (currentLevel - 1) * 10 +
-    questionIndex;
+    const questions =
+        getQuestionsForLevel(currentLevel);
 
-  return QUESTIONS[index];
+    const data =
+        questions[questionIndex];
+
+    document
+        .getElementById("currentLevel")
+        .textContent = currentLevel;
+
+    document
+        .getElementById("questionNumber")
+        .textContent = questionIndex + 1;
+
+    document
+        .getElementById("question")
+        .textContent = data.q;
+
+    const answers =
+        document.getElementById("answers");
+
+    answers.innerHTML = "";
+
+    data.a.forEach((answer, index) => {
+
+        const button =
+            document.createElement("button");
+
+        button.className = "answer";
+
+        button.textContent =
+            `${index + 1}. ${answer}`;
+
+        button.onclick =
+            () => checkAnswer(index);
+
+        answers.appendChild(button);
+    });
+
+    document
+        .getElementById("helpButton")
+        .style.display =
+        removedAnswers ? "none" : "flex";
 }
 
 
-/* RENDER QUESTION */
+// ===============================
+// ANSWER
+// ===============================
 
-function renderQuestion() {
+function checkAnswer(selected) {
 
-  const question =
-    getCurrentQuestion();
+    const questions =
+        getQuestionsForLevel(currentLevel);
 
-  if (!question) {
-    completeLevel();
-    return;
-  }
+    const data =
+        questions[questionIndex];
 
-  answerLocked = false;
-  eliminated = false;
+    const buttons =
+        document.querySelectorAll(".answer");
 
-  $("gameLevel").textContent =
-    `مەرحەلە ${currentLevel}`;
+    buttons.forEach(btn => {
+        btn.style.pointerEvents = "none";
+    });
 
-  $("questionNumber").textContent =
-    `پرسیاری ${questionIndex + 1} / 10`;
+    if (selected === data.correct) {
 
-  $("progressBar").style.width =
-    `${((questionIndex + 1) / 10) * 100}%`;
+        buttons[selected]
+            .classList.add("correct");
 
-  $("questionText").textContent =
-    question.question;
+        coins += 20;
 
-  const answers =
-    $("answers");
+        saveCoins();
 
-  answers.innerHTML = "";
+        playCorrect();
 
-  question.options.forEach(
-    (option, index) => {
+        setTimeout(() => {
 
-      const button =
-        document.createElement("button");
+            questionIndex++;
 
-      button.className =
-        "answer";
+            if (questionIndex >= 10) {
 
-      button.textContent =
-        `${String.fromCharCode(65 + index)}) ${option}`;
+                finishLevel();
 
-      button.addEventListener(
-        "click",
-        () => answerQuestion(
-          index,
-          button
-        )
-      );
+            } else {
 
-      answers.appendChild(button);
-    }
-  );
+                showQuestion();
+            }
 
-  $("unlockBtn").disabled = false;
-
-  updateCoins();
-}
-
-
-/* ANSWER */
-
-function answerQuestion(
-  selectedIndex,
-  clickedButton
-) {
-
-  if (answerLocked) return;
-
-  answerLocked = true;
-
-  const question =
-    getCurrentQuestion();
-
-  const buttons =
-    [...document.querySelectorAll(".answer")];
-
-  if (
-    selectedIndex ===
-    question.answer
-  ) {
-
-    clickedButton.classList.add(
-      "correct"
-    );
-
-    coins += 20;
-
-    playCorrect();
-
-  } else {
-
-    clickedButton.classList.add(
-      "wrong"
-    );
-
-    if (buttons[question.answer]) {
-
-      buttons[
-        question.answer
-      ].classList.add("correct");
-    }
-
-    playWrong();
-  }
-
-  buttons.forEach(button => {
-    button.disabled = true;
-  });
-
-  updateCoins();
-  saveUser();
-
-  setTimeout(() => {
-
-    questionIndex++;
-
-    if (questionIndex >= 10) {
-
-      completeLevel();
+        }, 900);
 
     } else {
 
-      renderQuestion();
-    }
+        buttons[selected]
+            .classList.add("wrong");
 
-  }, 900);
+        buttons[data.correct]
+            .classList.add("correct");
+
+        playWrong();
+
+        setTimeout(() => {
+
+            buttons.forEach(btn => {
+                btn.style.pointerEvents = "auto";
+            });
+
+        }, 700);
+    }
 }
 
 
-/* REMOVE WRONG ANSWER */
+// ===============================
+// REMOVE 2 ANSWERS
+// ===============================
 
-function unlockAnswer() {
+function removeAnswers() {
 
-  if (
-    answerLocked ||
-    eliminated
-  ) return;
+    if (coins < 50) {
 
-  if (coins < 50) {
+        alert("کۆینی پێویستت نییە! 50 🪙 پێویستە.");
 
-    alert("🪙 پارەت بەس نییە!");
-
-    return;
-  }
-
-  const question =
-    getCurrentQuestion();
-
-  const wrongIndexes = [];
-
-  question.options.forEach(
-    (_, index) => {
-
-      if (
-        index !==
-        question.answer
-      ) {
-        wrongIndexes.push(index);
-      }
+        return;
     }
-  );
 
-  const randomIndex =
-    wrongIndexes[
-      Math.floor(
-        Math.random() *
-        wrongIndexes.length
-      )
-    ];
+    coins -= 50;
 
-  const buttons =
-    document.querySelectorAll(".answer");
+    saveCoins();
 
-  if (buttons[randomIndex]) {
+    removedAnswers = true;
 
-    buttons[randomIndex].style.visibility =
-      "hidden";
-  }
+    const questions =
+        getQuestionsForLevel(currentLevel);
 
-  coins -= 50;
+    const correct =
+        questions[questionIndex].correct;
 
-  eliminated = true;
+    const buttons =
+        document.querySelectorAll(".answer");
 
-  $("unlockBtn").disabled = true;
+    let removed = 0;
 
-  updateCoins();
-  saveUser();
+    buttons.forEach((button, index) => {
+
+        if (
+            index !== correct &&
+            removed < 2
+        ) {
+
+            button.classList.add("disabled");
+
+            removed++;
+        }
+    });
+
+    document
+        .getElementById("helpButton")
+        .style.display = "none";
 }
 
 
-/* COMPLETE */
+// ===============================
+// FINISH LEVEL
+// ===============================
 
-function completeLevel() {
+function finishLevel() {
 
-  if (
-    !completedLevels.includes(
-      currentLevel
-    )
-  ) {
+    if (currentLevel > completedLevel) {
 
-    completedLevels.push(
-      currentLevel
+        completedLevel = currentLevel;
+
+        localStorage.setItem(
+            "amen_completed",
+            completedLevel
+        );
+    }
+
+    playLevelComplete();
+
+    setTimeout(() => {
+
+        alert(
+            `🎉 پیرۆزە!\nمەرحەلەی ${currentLevel} تەواو کرا!`
+        );
+
+        backToLevels();
+
+    }, 600);
+}
+
+
+// ===============================
+// BACK TO LEVELS
+// ===============================
+
+function backToLevels() {
+
+    document
+        .getElementById("quizSection")
+        .classList.add("hidden");
+
+    document
+        .getElementById("levelsSection")
+        .classList.remove("hidden");
+
+    renderLevels();
+}
+
+
+// ===============================
+// COINS
+// ===============================
+
+function saveCoins() {
+
+    localStorage.setItem(
+        "amen_coins",
+        coins
     );
-  }
 
-  const next =
-    currentLevel + 1;
+    updateCoins();
+}
 
-  if (
-    next <= totalLevels()
-  ) {
-    currentLevel = next;
-  }
+function updateCoins() {
 
-  saveUser();
-  updateHome();
+    document
+        .getElementById("coins")
+        .textContent = coins;
 
-  playLevelComplete();
-
-  $("levelCompletePopup")
-    .classList.add("show");
+    document
+        .getElementById("quizCoins")
+        .textContent = coins;
 }
 
 
-/* SOUND */
+// ===============================
+// PROGRESS
+// ===============================
 
-let audioContext = null;
+function updateProgress() {
 
-function getAudioContext() {
+    document
+        .getElementById("progressText")
+        .textContent =
+        `${completedLevel} / 1000`;
 
-  if (!audioContext) {
+    const percent =
+        (completedLevel / 1000) * 100;
+
+    document
+        .getElementById("progressBar")
+        .style.width = `${percent}%`;
+}
+
+
+// ===============================
+// SETTINGS
+// ===============================
+
+function openSettings() {
+
+    document
+        .getElementById("settings")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("soundToggle")
+        .checked = soundEnabled;
+
+    document
+        .getElementById("volume")
+        .value = volume;
+}
+
+function closeSettings() {
+
+    document
+        .getElementById("settings")
+        .classList.add("hidden");
+}
+
+function changeSound() {
+
+    soundEnabled =
+        document.getElementById(
+            "soundToggle"
+        ).checked;
+
+    localStorage.setItem(
+        "amen_sound",
+        soundEnabled
+    );
+}
+
+function changeVolume() {
+
+    volume =
+        Number(
+            document.getElementById(
+                "volume"
+            ).value
+        );
+
+    localStorage.setItem(
+        "amen_volume",
+        volume
+    );
+}
+
+
+// ===============================
+// SIMPLE SOUNDS
+// ===============================
+
+function beep(frequency, duration) {
+
+    if (!soundEnabled) return;
 
     const AudioContext =
-      window.AudioContext ||
-      window.webkitAudioContext;
+        window.AudioContext ||
+        window.webkitAudioContext;
 
-    if (!AudioContext)
-      return null;
+    const ctx = new AudioContext();
 
-    audioContext =
-      new AudioContext();
-  }
+    const oscillator =
+        ctx.createOscillator();
 
-  return audioContext;
+    const gain =
+        ctx.createGain();
+
+    oscillator.frequency.value =
+        frequency;
+
+    gain.gain.value = volume;
+
+    oscillator.connect(gain);
+
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        ctx.currentTime + duration
+    );
+
+    oscillator.stop(
+        ctx.currentTime + duration
+    );
 }
-
-
-function playTone(
-  frequency,
-  duration,
-  type = "sine"
-) {
-
-  if (!soundEnabled)
-    return;
-
-  const ctx =
-    getAudioContext();
-
-  if (!ctx)
-    return;
-
-  if (
-    ctx.state === "suspended"
-  ) {
-    ctx.resume();
-  }
-
-  const oscillator =
-    ctx.createOscillator();
-
-  const gain =
-    ctx.createGain();
-
-  oscillator.type =
-    type;
-
-  oscillator.frequency.value =
-    frequency;
-
-  gain.gain.setValueAtTime(
-    volume,
-    ctx.currentTime
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    .001,
-    ctx.currentTime + duration
-  );
-
-  oscillator.connect(gain);
-  gain.connect(ctx.destination);
-
-  oscillator.start();
-
-  oscillator.stop(
-    ctx.currentTime + duration
-  );
-}
-
 
 function playCorrect() {
 
-  playTone(600, .12);
+    beep(700, .12);
 
-  setTimeout(
-    () => playTone(850, .18),
-    100
-  );
+    setTimeout(() => {
+        beep(1000, .15);
+    }, 120);
 }
-
 
 function playWrong() {
 
-  playTone(
-    180,
-    .25,
-    "sawtooth"
-  );
+    beep(220, .25);
 }
-
 
 function playLevelComplete() {
 
-  playTone(500, .12);
+    beep(600, .15);
 
-  setTimeout(
-    () => playTone(700, .12),
-    130
-  );
+    setTimeout(() => {
+        beep(800, .15);
+    }, 150);
 
-  setTimeout(
-    () => playTone(950, .25),
-    260
-  );
+    setTimeout(() => {
+        beep(1100, .25);
+    }, 300);
 }
 
 
-/* SETTINGS */
+// ===============================
+// LOGOUT
+// ===============================
 
-function updateSettingsUI() {
+function logout() {
 
-  $("soundToggle").textContent =
-    soundEnabled
-      ? "ON"
-      : "OFF";
+    localStorage.removeItem("amen_email");
 
-  $("musicToggle").textContent =
-    musicEnabled
-      ? "ON"
-      : "OFF";
-
-  $("soundToggle")
-    .classList.toggle(
-      "active",
-      soundEnabled
-    );
-
-  $("musicToggle")
-    .classList.toggle(
-      "active",
-      musicEnabled
-    );
-
-  $("volume").value =
-    volume;
+    location.reload();
 }
 
 
-/* EVENTS */
+// ===============================
+// AUTO LOGIN
+// ===============================
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
+if (email) {
 
-    $("loginButton")
-      .addEventListener(
-        "click",
-        login
-      );
+    showGame();
 
-    $("email")
-      .addEventListener(
-        "keydown",
-        event => {
-
-          if (
-            event.key === "Enter"
-          ) {
-            login();
-          }
-        }
-      );
-
-    $("playButton")
-      .addEventListener(
-        "click",
-        () =>
-          startLevel(
-            currentLevel
-          )
-      );
-
-    $("levelsButton")
-      .addEventListener(
-        "click",
-        () => {
-
-          renderLevels();
-
-          showScreen(
-            "levelsScreen"
-          );
-        }
-      );
-
-    $("levelsBackButton")
-      .addEventListener(
-        "click",
-        () =>
-          showScreen(
-            "homeScreen"
-          )
-      );
-
-    $("backButton")
-      .addEventListener(
-        "click",
-        () =>
-          showScreen(
-            "homeScreen"
-          )
-      );
-
-    $("settingsButton")
-      .addEventListener(
-        "click",
-        () => {
-
-          updateSettingsUI();
-
-          showScreen(
-            "settingsScreen"
-          );
-        }
-      );
-
-    $("settingsBackButton")
-      .addEventListener(
-        "click",
-        () => {
-
-          saveUser();
-
-          showScreen(
-            "homeScreen"
-          );
-        }
-      );
-
-    $("unlockBtn")
-      .addEventListener(
-        "click",
-        unlockAnswer
-      );
-
-    $("soundToggle")
-      .addEventListener(
-        "click",
-        () => {
-
-          soundEnabled =
-            !soundEnabled;
-
-          updateSettingsUI();
-          saveUser();
-        }
-      );
-
-    $("musicToggle")
-      .addEventListener(
-        "click",
-        () => {
-
-          musicEnabled =
-            !musicEnabled;
-
-          updateSettingsUI();
-          saveUser();
-        }
-      );
-
-    $("volume")
-      .addEventListener(
-        "input",
-        event => {
-
-          volume =
-            Number(
-              event.target.value
-            );
-
-          saveUser();
-        }
-      );
-
-    $("nextLevelButton")
-      .addEventListener(
-        "click",
-        () => {
-
-          $("levelCompletePopup")
-            .classList.remove("show");
-
-          if (
-            currentLevel <=
-            totalLevels()
-          ) {
-
-            startLevel(
-              currentLevel
-            );
-
-          } else {
-
-            showScreen(
-              "homeScreen"
-            );
-          }
-        }
-      );
-
-    $("homeButton")
-      .addEventListener(
-        "click",
-        () => {
-
-          $("levelCompletePopup")
-            .classList.remove("show");
-
-          updateHome();
-
-          showScreen(
-            "homeScreen"
-          );
-        }
-      );
-
-    $("closePopup")
-      .addEventListener(
-        "click",
-        () => {
-
-          $("levelCompletePopup")
-            .classList.remove("show");
-        }
-      );
-
-    updateSettingsUI();
-    updateCoins();
-
-    console.log(
-      "✅ AMEN iT READY"
-    );
-  }
-);
+}
